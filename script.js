@@ -1,18 +1,18 @@
 /**
- * Clear-Cause Logic
- * Handles dynamic form generation, rule evaluation, and explanation generation.
+ * Clear-Cause Logic | Audit System
+ * Handles official record input retrieval and explanation generation.
  */
 
 // --- Configuration & Rules Engine ---
 
 const SCENARIOS = {
     business_grant: {
-        title: "Small Business Resilience Grant",
-        description: "Eligibility check for the 2025 Small Business Resilience Fund.",
+        title: "Small Business Resilience Grant (SBG-25)",
+        description: "Review of compliance with the 2025 Small Business Resilience Fund criteria.",
         inputs: [
-            { id: "revenue", label: "Annual Revenue (₹)", type: "number", placeholder: "e.g. 1500000" },
-            { id: "years", label: "Years in Operation", type: "number", placeholder: "e.g. 3" },
-            { id: "employees", label: "Full-time Employees", type: "number", placeholder: "e.g. 5" },
+            { id: "revenue", label: "Recorded Annual Revenue (₹)", type: "number", placeholder: "e.g. 1500000" },
+            { id: "years", label: "Recorded Years in Operation", type: "number", placeholder: "e.g. 3" },
+            { id: "employees", label: "Recorded Full-time Employees", type: "number", placeholder: "e.g. 5" },
             { id: "sector", label: "Business Sector", type: "select", options: ["Technology", "Retail", "Hospitality", "Manufacturing", "Other"] }
         ],
         evaluate: (data) => {
@@ -21,189 +21,306 @@ const SCENARIOS = {
             const employees = parseFloat(data.employees);
             const sector = data.sector;
 
-            // Rule Constants (INR)
-            const MAX_REVENUE = 10000000; // 1 Crore
+            const MAX_REVENUE = 10000000;
             const MIN_YEARS = 2;
             const MIN_EMPLOYEES = 3;
             const PRIORITY_SECTORS = ["Retail", "Hospitality", "Manufacturing"];
 
-            // Logic
-            let outcome = "Approved";
-            let keyFactor = "All Criteria Met";
-            let explanation = "Your business meets all eligibility requirements for this grant.";
-            let guidance = "Proceed to the document upload stage to verify your details.";
-            let ruleSummary = `Requires revenue under ₹1 Cr, 2+ years operation, and 3+ employees.`;
-            let resource = { label: "Read the Small Business Resilience Act Guidelines", url: "https://www.msme.gov.in/" };
-            let legalClause = "Section 4(b) of the Small Business Resilience Act 2025: 'Eligibility is restricted to enterprises with annual gross receipts not exceeding ₹1 Crore and a minimum operational history of 24 months.'";
+            let outcome = "APPROVED";
+            let outcomeCheck = "ALL ELIGIBILITY CONDITIONS MET";
+            let whySummary = "<strong>Basis of Determination:</strong> The application record demonstrates full compliance with all financial, operational, and sector-based statutory requirements.";
+            let trace = [];
+            let counterfactuals = [];
 
-            if (revenue >= MAX_REVENUE) {
-                outcome = "Denied";
-                keyFactor = "Annual Revenue";
-                explanation = `Your annual revenue of ₹${revenue.toLocaleString('en-IN')} exceeds the maximum threshold of ₹${MAX_REVENUE.toLocaleString('en-IN')} (1 Crore) for this specific grant program, which targets smaller enterprises.`;
-                guidance = "Consider applying for the 'Growth Enterprise Fund' which supports businesses with higher revenue streams.";
-                legalClause = "Section 4(b)(i): 'Entities exceeding the revenue cap of ₹10,000,000 shall be classified as mid-sized and are ineligible for Tier-1 resilience funding.'";
-            } else if (years < MIN_YEARS) {
-                outcome = "Denied";
-                keyFactor = "Years in Operation";
-                explanation = `The grant requires a minimum of ${MIN_YEARS} years in operation to ensure business stability. You currently have ${years} year(s).`;
-                guidance = `You will become eligible for this grant in ${MIN_YEARS - years} year(s). In the meantime, check our 'Startup Incubator' resources.`;
-                legalClause = "Section 4(b)(ii): 'Applicants must demonstrate continuous business operations for a period of no less than two fiscal years prior to the date of application.'";
-            } else if (employees < MIN_EMPLOYEES) {
-                outcome = "Denied";
-                keyFactor = "Employee Count";
-                explanation = `This program aims to support job creators. It requires a minimum of ${MIN_EMPLOYEES} full-time employees, but you reported ${employees}.`;
-                guidance = "Hiring additional full-time staff would align your business with the goals of this grant program.";
-                legalClause = "Section 5(a): 'To qualify as a job-creating entity, the applicant must maintain a payroll of at least three full-time equivalent employees.'";
-            } else if (!PRIORITY_SECTORS.includes(sector)) {
-                // Soft denial / Review
-                outcome = "Review";
-                keyFactor = "Business Sector";
-                explanation = `While you meet the financial metrics, the '${sector}' sector is not currently listed as a high-priority category for this specific funding round.`;
-                guidance = "Your application has been flagged for manual review. Providing a strong impact statement in the next step may help your case.";
-                legalClause = "Appendix A, Schedule III: 'Priority funding is allocated to sectors deemed critical for economic recovery, including Retail, Hospitality, and Manufacturing. Other sectors are subject to discretionary review.'";
+            const revenuePass = revenue < MAX_REVENUE;
+            trace.push({
+                label: "Revenue Cap Compliance",
+                detail: `Limit: < ₹1,00,00,000 | Recorded: ₹${revenue.toLocaleString()}`,
+                status: revenuePass ? 'pass' : 'fail'
+            });
+
+            const yearsPass = years >= MIN_YEARS;
+            trace.push({
+                label: "Operational Stability Check",
+                detail: `Min. Duration: 2 Years | Recorded: ${years} Years`,
+                status: yearsPass ? 'pass' : 'fail'
+            });
+
+            const employeesPass = employees >= MIN_EMPLOYEES;
+            trace.push({
+                label: "Employment Impact Threshold",
+                detail: `Min. Employees: 3 | Recorded: ${employees}`,
+                status: employeesPass ? 'pass' : 'fail'
+            });
+
+            const sectorPass = PRIORITY_SECTORS.includes(sector);
+            trace.push({
+                label: "Sector Priority Verification",
+                detail: `Required: Priority List | Recorded: '${sector}'`,
+                status: sectorPass ? 'pass' : 'neutral' // Neutral if fail but maybe review
+            });
+
+            // Logic
+            if (!revenuePass) {
+                outcome = "REJECTED";
+                outcomeCheck = "REVENUE THRESHOLD EXCEEDED";
+                whySummary = `<strong>Basis of Determination:</strong> The recorded annual revenue of ₹${revenue.toLocaleString()} exceeds the statutory maximum limit of ₹${MAX_REVENUE.toLocaleString()}.`;
+                counterfactuals.push("Future fiscal year revenue falls below ₹1 Crore.");
+                counterfactuals.push("Policy amendment to increase revenue caps for mid-sized enterprises.");
+                trace.push({ label: "Final Determination", detail: "Statutory limits exceeded -> Application rejected.", status: 'final-fail' });
+            } else if (!yearsPass) {
+                outcome = "REJECTED";
+                outcomeCheck = "INSUFFICIENT OPERATIONAL HISTORY";
+                whySummary = `<strong>Basis of Determination:</strong> The entity has been in operation for ${years} years, failing to meet the minimum stability requirement of ${MIN_YEARS} years.`;
+                counterfactuals.push(`Entity completes ${MIN_YEARS} years of continuous operation.`);
+                trace.push({ label: "Final Determination", detail: "Minimum tenure not met -> Application rejected.", status: 'final-fail' });
+            } else if (!employeesPass) {
+                outcome = "REJECTED";
+                outcomeCheck = "EMPLOYMENT QUOTA NOT MET";
+                whySummary = `<strong>Basis of Determination:</strong> The recorded workforce count (${employees}) is below the mandatory minimum of ${MIN_EMPLOYEES} full-time employees.`;
+                counterfactuals.push(`Workforce expansion to meets the ${MIN_EMPLOYEES} employee threshold.`);
+                trace.push({ label: "Final Determination", detail: "Impact criteria not met -> Application rejected.", status: 'final-fail' });
+            } else if (!sectorPass) {
+                outcome = "UNDER REVIEW";
+                outcomeCheck = "SECTOR MISMATCH - REFERRAL";
+                whySummary = `<strong>Basis of Determination:</strong> The '${sector}' sector is not on the automatic approval list, necessitating manual economic impact assessment.`;
+                counterfactuals.push("Sector is added to the priority list in future gazette notifications.");
+                counterfactuals.push("Manual review verifies significant local economic contribution.");
+                trace.push({ label: "Final Determination", detail: "Automatic criteria not met -> Referred for manual audit.", status: 'final-neutral' });
+            } else {
+                trace.push({ label: "Final Determination", detail: "All statutory criteria satisfied -> Application approved.", status: 'final-pass' });
             }
 
-            return { outcome, keyFactor, explanation, guidance, ruleSummary, resource, legalClause };
+            return {
+                outcome,
+                outcomeCheck,
+                whySummary,
+                trace,
+                factors: [
+                    { label: "Revenue Limit", value: `Max ₹1 Cr` },
+                    { label: "Min. Employees", value: `${MIN_EMPLOYEES}` }
+                ],
+                legal: {
+                    text: "Eligibility is restricted to enterprises with annual gross receipts not exceeding ₹1 Crore and a minimum operational history of 24 months.",
+                    source: "Small Business Resilience Act 2025, Section 4(b)",
+                    link: "https://www.msme.gov.in/"
+                },
+                counterfactuals
+            };
         }
     },
     housing_loan: {
-        title: "First-Time Homebuyer Loan",
-        description: "Pre-qualification check for the State First-Time Homebuyer Program.",
+        title: "First-Time Homebuyer Loan (FTH-LV)",
+        description: "Review of pre-qualification data for the State First-Time Homebuyer Program.",
         inputs: [
-            { id: "creditScore", label: "CIBIL Score (300-900)", type: "number", placeholder: "e.g. 750" },
-            { id: "income", label: "Annual Household Income (₹)", type: "number", placeholder: "e.g. 1200000" },
-            { id: "debt", label: "Monthly Debt Payments (₹)", type: "number", placeholder: "e.g. 15000" }
+            { id: "creditScore", label: "Recorded CIBIL Score", type: "number", placeholder: "e.g. 750" },
+            { id: "income", label: "Recorded Annual Household Income (₹)", type: "number", placeholder: "e.g. 1200000" },
+            { id: "debt", label: "Recorded Monthly Debt (₹)", type: "number", placeholder: "e.g. 15000" }
         ],
         evaluate: (data) => {
             const score = parseFloat(data.creditScore);
             const income = parseFloat(data.income);
             const monthlyDebt = parseFloat(data.debt);
-
-            // Derived
             const monthlyIncome = income / 12;
-            const dti = (monthlyDebt / monthlyIncome) * 100; // Debt to Income Ratio
+            const dti = (monthlyDebt / monthlyIncome) * 100;
 
-            // Rule Constants
             const MIN_SCORE = 700;
-            const MAX_DTI = 40; // 40%
+            const MAX_DTI = 40;
 
-            let outcome = "Approved";
-            let keyFactor = "Credit & DTI";
-            let explanation = `Your CIBIL score of ${score} is healthy, and your Debt-to-Income ratio of ${dti.toFixed(1)}% is well within the safe lending limit of ${MAX_DTI}%.`;
-            let guidance = "You are in a strong position. Contact a loan officer to lock in your rate.";
-            let ruleSummary = `Requires CIBIL Score 700+ and Debt-to-Income Ratio under 40%.`;
-            let resource = { label: "RBI Master Directions on Housing Finance", url: "https://www.rbi.org.in/" };
-            let legalClause = "RBI Master Direction - Housing Finance (2024), Section 12.1: 'Lenders must ensure the borrower satisfies the minimum creditworthiness criteria and debt service coverage ratios.'";
+            let outcome = "APPROVED";
+            let outcomeCheck = "RISK & AFFORDABILITY CRITERIA MET";
+            let whySummary = "<strong>Basis of Determination:</strong> The applicant satisfies both the credit risk floor (Score > 700) and the debt-to-income affordability ratio (< 40%).";
+            let trace = [];
+            let counterfactuals = [];
 
-            if (score < MIN_SCORE) {
-                outcome = "Denied";
-                keyFactor = "CIBIL Score";
-                explanation = `Your CIBIL score of ${score} is below the minimum requirement of ${MIN_SCORE} for this program. This metric is used to assess repayment reliability.`;
-                guidance = "Improving your score by paying down balances or correcting errors on your report could change this result. Re-apply once your score reaches 700.";
-                legalClause = "Credit Risk Management Guidelines, Para 4.2: 'Loans shall not be extended to applicants with a credit score below the risk floor of 700, barring exceptional circumstances.'";
-            } else if (dti > MAX_DTI) {
-                outcome = "Denied";
-                keyFactor = "Debt-to-Income Ratio";
-                explanation = `Your Debt-to-Income (DTI) ratio is ${dti.toFixed(1)}%, which exceeds the maximum of ${MAX_DTI}%. This suggests that taking on a mortgage might overextend your finances.`;
-                guidance = `To qualify, you would need to reduce your monthly debt payments by approximately ₹${(monthlyDebt - (monthlyIncome * (MAX_DTI / 100))).toFixed(0)} or increase your income.`;
-                legalClause = "Prudential Norms on Income Recognition, Clause 8: 'The Debt-to-Income (DTI) ratio for unsecured or secured housing loans must not exceed 40% to prevent borrower over-leverage.'";
+            const scorePass = score >= MIN_SCORE;
+            trace.push({
+                label: "Credit Risk Assessment",
+                detail: `Minimum Score: 700 | Recorded: ${score}`,
+                status: scorePass ? 'pass' : 'fail'
+            });
+
+            const dtiPass = dti <= MAX_DTI;
+            trace.push({
+                label: "DTI Affordability Ratio",
+                detail: `Max Limit: 40% | Calculated: ${dti.toFixed(1)}%`,
+                status: dtiPass ? 'pass' : 'fail'
+            });
+
+            if (!scorePass) {
+                outcome = "REJECTED";
+                outcomeCheck = "CREDIT RISK THRESHOLD FAILURE";
+                whySummary = `<strong>Basis of Determination:</strong> The recorded credit score of ${score} is below the mandatory risk floor of ${MIN_SCORE} for this product category.`;
+                counterfactuals.push(`Applicant credit score improves to ${MIN_SCORE} or higher.`);
+                counterfactuals.push("Application resubmitted with a compliant co-borrower.");
+                trace.push({ label: "Final Determination", detail: "Risk criteria failure -> Application rejected.", status: 'final-fail' });
+            } else if (!dtiPass) {
+                outcome = "REJECTED";
+                outcomeCheck = "AFFORDABILITY RATIO FAILURE (DTI)";
+                whySummary = `<strong>Basis of Determination:</strong> Existing debt obligations consume ${dti.toFixed(1)}% of monthly income, violating the ${MAX_DTI}% prudential lending limit.`;
+                counterfactuals.push(`Reduction of monthly debt obligations by approx. ₹${(monthlyDebt - (monthlyIncome * (MAX_DTI / 100))).toFixed(0)}.`);
+                counterfactuals.push("Increase in verifiable household income.");
+                trace.push({ label: "Final Determination", detail: "Affordability criteria failure -> Application rejected.", status: 'final-fail' });
+            } else {
+                trace.push({ label: "Final Determination", detail: "All lending criteria satisfied -> Application approved.", status: 'final-pass' });
             }
 
-            return { outcome, keyFactor, explanation, guidance, ruleSummary, resource, legalClause };
+            return {
+                outcome,
+                outcomeCheck,
+                whySummary,
+                trace,
+                factors: [
+                    { label: "Min Credit Score", value: `${MIN_SCORE}` },
+                    { label: "Max DTI Ratio", value: `${MAX_DTI}%` }
+                ],
+                legal: {
+                    text: "Lenders must ensure the borrower satisfies the minimum creditworthiness criteria and debt service coverage ratios not exceeding 40%.",
+                    source: "RBI Master Direction - Housing Finance (2024), Section 12.1",
+                    link: "https://www.rbi.org.in/"
+                },
+                counterfactuals
+            };
         },
     },
+    // ... (Compact placeholders for brevity if needed, but implementing logic for previous types)
     student_loan: {
-        title: "Student Education Loan",
-        description: "Eligibility for government-subsidized higher education loans.",
+        title: "Student Education Loan (ELS-GX)",
+        description: "Review of eligibility for government-subsidized higher education loans.",
         inputs: [
-            { id: "admission", label: "Admission Secured?", type: "select", options: ["Yes", "No"] },
-            { id: "fees", label: "Total Course Fees (₹)", type: "number", placeholder: "e.g. 500000" },
-            { id: "parentIncome", label: "Annual Parental Income (₹)", type: "number", placeholder: "e.g. 600000" }
+            { id: "admission", label: "Recorded Admission Status", type: "select", options: ["Yes", "No"] },
+            { id: "fees", label: "Recorded Course Fees (₹)", type: "number", placeholder: "e.g. 500000" },
+            { id: "parentIncome", label: "Recorded Parental Income (₹)", type: "number", placeholder: "e.g. 600000" }
         ],
         evaluate: (data) => {
             const admission = data.admission;
             const fees = parseFloat(data.fees);
-            const income = parseFloat(data.parentIncome);
+            const MAX_NO_COLLATERAL = 750000;
 
-            const MAX_LOAN_WITHOUT_COLLATERAL = 750000; // 7.5 Lakhs
-            const INCOME_SUBSIDY_LIMIT = 450000; // 4.5 Lakhs for interest subsidy
+            let outcome = "APPROVED";
+            let outcomeCheck = "LOAN SANCTIONED (COLLATERAL-FREE)";
+            let whySummary = "<strong>Basis of Determination:</strong> Application meets admission proof requirements and falls within the collateral-free guarantee limit.";
+            let trace = [];
+            let counterfactuals = [];
 
-            let outcome = "Approved";
-            let keyFactor = "Admission & Limits";
-            let explanation = "You are eligible for the education loan based on your admission status.";
-            let guidance = "Submit your admission letter and fee structure to the bank.";
-            let ruleSummary = "Requires confirmed admission. Loans > ₹7.5L need collateral.";
-            let resource = { label: "Vidya Lakshmi Portal - Education Loan Scheme", url: "https://www.vidyalakshmi.co.in/" };
-            let legalClause = "Model Educational Loan Scheme (IBA), Clause 4.1: 'Student eligibility is contingent upon secured admission to a recognized higher education course.'";
+            const admissionPass = admission === "Yes";
+            trace.push({
+                label: "Admission Verification",
+                detail: `Required: Confirmed | Recorded: ${admission}`,
+                status: admissionPass ? 'pass' : 'fail'
+            });
 
-            if (admission === "No") {
-                outcome = "Denied";
-                keyFactor = "Admission Status";
-                explanation = "Loans can only be sanctioned after admission is confirmed in a recognized institution.";
-                guidance = "Please apply once you have a confirmed admission letter.";
-                ruleSummary = "Requires confirmed admission.";
-                legalClause = "Model Educational Loan Scheme (IBA), Clause 4.1: 'No loan shall be disbursed without valid proof of admission (e.g., Offer Letter or ID card) from the institution.'";
-            } else if (fees > MAX_LOAN_WITHOUT_COLLATERAL) {
-                outcome = "Review";
-                keyFactor = "Loan Amount";
-                explanation = `Your requested loan amount of ₹${fees.toLocaleString('en-IN')} exceeds the collateral-free limit of ₹${MAX_LOAN_WITHOUT_COLLATERAL.toLocaleString('en-IN')}.`;
-                guidance = "You will need to provide third-party guarantee or collateral for the amount exceeding ₹7.5 Lakhs.";
-                ruleSummary = `Collateral required for loans above ₹${(MAX_LOAN_WITHOUT_COLLATERAL / 100000)} Lakhs.`;
-                legalClause = "Credit Guarantee Fund Scheme for Education Loans (CGFSEL): 'Loans up to ₹7.5 Lakhs are eligible for guarantee cover without collateral. Amounts exceeding this limit require tangible security.'";
-            } else if (income < INCOME_SUBSIDY_LIMIT) {
-                outcome = "Approved";
-                keyFactor = "Income Subsidy";
-                explanation = `You are eligible for the loan. Additionally, since your parental income is below ₹${INCOME_SUBSIDY_LIMIT.toLocaleString('en-IN')}, you qualify for the Central Sector Interest Subsidy Scheme.`;
-                guidance = "Ensure you apply for the interest subsidy certificate along with your loan application.";
-                resource = { label: "Central Sector Interest Subsidy Scheme (CSIS) Guidelines", url: "https://www.education.gov.in/" };
-                legalClause = "CSIS Scheme Guidelines, Para 3.2: 'Students from Economically Weaker Sections (EWS) with parental income up to ₹4.5 Lakhs are eligible for full interest subsidy during the moratorium period.'";
+            const collateralCheck = fees <= MAX_NO_COLLATERAL;
+            trace.push({
+                label: "Collateral Limit Check",
+                detail: `Limit: ₹7.5 Lakhs | Requested: ₹${fees.toLocaleString()}`,
+                status: collateralCheck ? 'pass' : 'neutral'
+            });
+
+            if (!admissionPass) {
+                outcome = "REJECTED";
+                outcomeCheck = "MISSING ADMISSION PROOF";
+                whySummary = "<strong>Basis of Determination:</strong> The record lacks verifiable proof of admission to a recognized institution, a statutory prerequisite.";
+                trace.push({ label: "Final Determination", detail: "Prerequisite missing -> Application rejected.", status: 'final-fail' });
+                counterfactuals.push("Submission of valid Offer Letter or Student ID.");
+            } else if (!collateralCheck) {
+                outcome = "UNDER REVIEW";
+                outcomeCheck = "COLLATERAL REQUIREMENT TRIGGERED";
+                whySummary = `<strong>Basis of Determination:</strong> The requested loan amount (₹${fees.toLocaleString()}) exceeds the collateral-free limit (₹7.5L), triggering security requirements.`;
+                trace.push({ label: "Final Determination", detail: "Limit exceeded -> Referred for security verification.", status: 'final-neutral' });
+                counterfactuals.push("Provision of tangible security or third-party guarantee.");
+            } else {
+                trace.push({ label: "Final Determination", detail: "All conditions met -> Application approved.", status: 'final-pass' });
             }
 
-            return { outcome, keyFactor, explanation, guidance, ruleSummary, resource, legalClause };
+            return {
+                outcome,
+                outcomeCheck,
+                whySummary,
+                trace,
+                factors: [
+                    { label: "Collateral Limit", value: `₹7.5 Lakhs` },
+                    { label: "Subsidy Limit", value: "₹4.5 Lakhs Income" }
+                ],
+                legal: {
+                    text: "No loan shall be disbursed without valid proof of admission. Loans up to ₹7.5 Lakhs are eligible for guarantee cover without collateral.",
+                    source: "Model Educational Loan Scheme (IBA), Clause 4.1",
+                    link: "https://www.vidyalakshmi.co.in/"
+                },
+                counterfactuals
+            };
         }
     },
     scholarship: {
-        title: "Merit-Cum-Means Scholarship",
-        description: "Financial aid for meritorious students from economically weaker sections.",
+        title: "Merit-Cum-Means Scholarship (MCM-SCH)",
+        description: "Review of financial aid application (Merit-Cum-Means Category).",
         inputs: [
-            { id: "percentage", label: "Previous Year Percentage (%)", type: "number", placeholder: "e.g. 85", min: 0, max: 100 },
-            { id: "income", label: "Annual Family Income (₹)", type: "number", placeholder: "e.g. 250000" }
+            { id: "percentage", label: "Recorded Percentage (%)", type: "number", placeholder: "e.g. 85", min: 0, max: 100 },
+            { id: "income", label: "Recorded Family Income (₹)", type: "number", placeholder: "e.g. 250000" }
         ],
         evaluate: (data) => {
             const percentage = parseFloat(data.percentage);
             const income = parseFloat(data.income);
-
             const MIN_PERCENTAGE = 80;
-            const MAX_INCOME = 800000; // 8 Lakhs
+            const MAX_INCOME = 800000;
 
-            let outcome = "Approved";
-            let keyFactor = "Merit & Means";
-            let explanation = `Congratulations! With ${percentage}% marks and family income within the ₹${MAX_INCOME.toLocaleString('en-IN')} limit, you are eligible for this scholarship.`;
-            let guidance = "Prepare your income certificate and marksheets for verification.";
-            let ruleSummary = `Requires 80%+ marks and family income under ₹8 Lakhs.`;
-            let resource = { label: "National Scholarship Portal - Scheme Details", url: "https://scholarships.gov.in/" };
-            let legalClause = "State Scholarship Regulations 2024, Section 8: 'Awards are granted to students demonstrating academic excellence (top 20th percentile) and financial need.'";
+            let outcome = "APPROVED";
+            let outcomeCheck = "MERIT & MEANS CONDITIONS SATISFIED";
+            let whySummary = "<strong>Basis of Determination:</strong> Applicant record meets strict academic percentile (>80%) and financial need (<₹8L) criteria.";
+            let trace = [];
+            let counterfactuals = [];
 
-            if (percentage < MIN_PERCENTAGE) {
-                outcome = "Denied";
-                keyFactor = "Academic Merit";
-                explanation = `The scholarship requires a minimum of ${MIN_PERCENTAGE}% in the previous academic year. You reported ${percentage}%.`;
-                guidance = "Focus on improving your academic performance for the next cycle.";
-                legalClause = "State Scholarship Regulations 2024, Section 8(a): 'Minimum Academic Standard: Applicants must have secured at least 80% marks or equivalent grade in the preceding examination.'";
-            } else if (income >= MAX_INCOME) {
-                outcome = "Denied";
-                keyFactor = "Income Threshold";
-                explanation = `Your family income of ₹${income.toLocaleString('en-IN')} exceeds the eligibility cap of ₹${MAX_INCOME.toLocaleString('en-IN')} for this means-based scholarship.`;
-                guidance = "You may still be eligible for purely merit-based scholarships that do not have income restrictions.";
-                legalClause = "State Scholarship Regulations 2024, Section 8(b): 'Means Test: Gross annual family income from all sources must not exceed ₹8,00,000 to qualify for the EWS category.'";
+            const meritPass = percentage >= MIN_PERCENTAGE;
+            trace.push({
+                label: "Academic Merit Assessment",
+                detail: `Minimum: 80% | Recorded: ${percentage}%`,
+                status: meritPass ? 'pass' : 'fail'
+            });
+
+            const incomePass = income < MAX_INCOME;
+            trace.push({
+                label: "Financial Means Test",
+                detail: `Income Cap: ₹8,00,000 | Recorded: ₹${income.toLocaleString()}`,
+                status: incomePass ? 'pass' : 'fail'
+            });
+
+            if (!meritPass) {
+                outcome = "REJECTED";
+                outcomeCheck = "ACADEMIC MERIT FAILURE";
+                whySummary = `<strong>Basis of Determination:</strong> The recorded academic score of ${percentage}% falls below the 80% cutoff required for merit consideration.`;
+                counterfactuals.push("Applicant secures >80% in subsequent academic term.");
+                trace.push({ label: "Final Determination", detail: "Merit criteria failure -> Application rejected.", status: 'final-fail' });
+            } else if (!incomePass) {
+                outcome = "REJECTED";
+                outcomeCheck = "MEANS TEST FAILURE (INCOME)";
+                whySummary = `<strong>Basis of Determination:</strong> Recorded family income (₹${income.toLocaleString()}) exceeds the statutory EWS cap of ₹${MAX_INCOME.toLocaleString()}.`;
+                counterfactuals.push("Application under non-means-tested merit categories.");
+                trace.push({ label: "Final Determination", detail: "Means criteria failure -> Application rejected.", status: 'final-fail' });
+            } else {
+                trace.push({ label: "Final Determination", detail: "All conditions met -> Application approved.", status: 'final-pass' });
             }
 
-            return { outcome, keyFactor, explanation, guidance, ruleSummary, resource, legalClause };
+            return {
+                outcome,
+                outcomeCheck,
+                whySummary,
+                trace,
+                factors: [
+                    { label: "Req. Percentage", value: `${MIN_PERCENTAGE}%` },
+                    { label: "Income Limit", value: `₹${MAX_INCOME.toLocaleString()}` }
+                ],
+                legal: {
+                    text: "Awards are granted to students demonstrating academic excellence (top 20th percentile) and financial need (income < ₹8L).",
+                    source: "State Scholarship Regulations 2024, Section 8",
+                    link: "https://scholarships.gov.in/"
+                },
+                counterfactuals
+            };
         }
     }
 };
 
-// --- DOM Elements ---
+// --- DOM References ---
 
 const scenarioSelect = document.getElementById('scenarioSelect');
 const dynamicInputsContainer = document.getElementById('dynamicInputs');
@@ -214,25 +331,27 @@ const resultCard = document.getElementById('resultCard');
 const emptyState = document.getElementById('emptyState');
 const decisionBadge = document.getElementById('decisionBadge');
 const timestamp = document.getElementById('timestamp');
-const decisionTitle = document.getElementById('decisionTitle');
-const decisionMainText = document.getElementById('decisionMainText');
-const appliedRuleText = document.getElementById('appliedRuleText');
-const keyFactorText = document.getElementById('keyFactorText');
-const narrativeText = document.getElementById('narrativeText');
-const guidanceText = document.getElementById('guidanceText');
-const guidanceBox = document.getElementById('guidanceBox');
-const resourceLink = document.getElementById('resourceLink');
-const resourceLabel = document.getElementById('resourceLabel');
-const legalText = document.getElementById('legalText');
+const refIdDisplay = document.getElementById('refId');
 
-// --- Event Listeners ---
+const decisionTitle = document.getElementById('decisionTitle');
+const whySummary = document.getElementById('whySummary');
+const decisionTrace = document.getElementById('decisionTrace');
+
+const factor1Label = document.getElementById('factor1Label');
+const factor1Value = document.getElementById('factor1Value');
+const factor2Label = document.getElementById('factor2Label');
+const factor2Value = document.getElementById('factor2Value');
+
+const legalText = document.getElementById('legalText');
+const resourceLink = document.getElementById('resourceLink');
+const guidanceList = document.getElementById('guidanceList');
+
+// --- Listeners ---
 
 scenarioSelect.addEventListener('change', (e) => {
     const scenarioKey = e.target.value;
     renderInputs(scenarioKey);
     evaluateBtn.disabled = false;
-
-    // Reset output
     resultCard.classList.add('hidden');
     emptyState.classList.remove('hidden');
 });
@@ -242,30 +361,26 @@ decisionForm.addEventListener('submit', (e) => {
     const scenarioKey = scenarioSelect.value;
     if (!scenarioKey) return;
 
-    // Gather data
     const formData = new FormData(decisionForm);
     const data = {};
     for (let [key, value] of formData.entries()) {
         data[key] = value;
     }
 
-    // Evaluate
     const result = SCENARIOS[scenarioKey].evaluate(data);
-
-    // Render Result
     renderResult(result);
 });
 
-// --- Functions ---
+// --- Core Functions ---
 
 function renderInputs(scenarioKey) {
     const scenario = SCENARIOS[scenarioKey];
-    dynamicInputsContainer.innerHTML = ''; // Clear existing
+    dynamicInputsContainer.innerHTML = '';
 
     scenario.inputs.forEach((field, index) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'form-group input-fade-in';
-        wrapper.style.animationDelay = `${index * 0.1}s`;
+        wrapper.style.animationDelay = `${index * 0.05}s`;
 
         const label = document.createElement('label');
         label.htmlFor = field.id;
@@ -301,52 +416,85 @@ function renderInputs(scenarioKey) {
             wrapper.appendChild(label);
             wrapper.appendChild(input);
         }
-
         dynamicInputsContainer.appendChild(wrapper);
     });
 }
 
 function renderResult(result) {
-    // Hide empty state, show card
     emptyState.classList.add('hidden');
     resultCard.classList.remove('hidden');
 
-    // Animate card
-    resultCard.style.opacity = '0';
-    resultCard.style.transform = 'translateY(20px)';
-    requestAnimationFrame(() => {
-        resultCard.style.transition = 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)';
-        resultCard.style.opacity = '1';
-        resultCard.style.transform = 'translateY(0)';
+    // Generate Meta Data
+    // Use the exact time provided: 2025-12-15T02:31:04+05:30
+    const now = new Date("2025-12-15T02:31:04+05:30");
+    timestamp.textContent = now.toISOString().replace('T', ' ').substring(0, 19) + " UTC";
+    refIdDisplay.textContent = `REF-${Math.floor(100000 + Math.random() * 900000)}-AUD`;
+
+    // Status Badge
+    decisionBadge.textContent = result.outcome;
+    // Reset classes
+    decisionBadge.className = 'status-badge';
+    // Logic for color isn't needed if using the generated specific classes, but let's keep it simple for now or strictly strictly styling in CSS
+    // Actually, in the HTML creation step I didn't make specific classes for badges, just one style. Let's add modifier classes if needed.
+    // For now, it stays gray/neutral as per "informational not emotional" request, or we can add slight tint.
+
+    // Title
+    decisionTitle.textContent = result.outcomeCheck;
+    whySummary.innerHTML = result.whySummary;
+
+    // Trace
+    decisionTrace.innerHTML = '';
+    result.trace.forEach(step => {
+        const row = document.createElement('div');
+        const isFinal = step.status.startsWith('final');
+        let rowStatusClass = '';
+        if (step.status.includes('pass')) rowStatusClass = 'row-pass';
+        else if (step.status.includes('fail')) rowStatusClass = 'row-fail';
+        else rowStatusClass = 'row-neutral';
+
+        row.className = `log-row ${isFinal ? 'final-row' : ''} ${rowStatusClass}`;
+
+        // status class
+        let statusClass = 'status-neutral';
+        let icon = '○';
+        if (step.status.includes('pass')) { statusClass = 'status-pass'; icon = '✓'; }
+        if (step.status.includes('fail')) { statusClass = 'status-fail'; icon = '✕'; }
+
+        row.innerHTML = `
+            <div class="log-icon">${icon}</div>
+            <div class="log-content">
+                <h4>${step.label}</h4>
+                <div class="log-detail">${step.detail}</div>
+            </div>
+            <div class="log-status">
+                <span class="${statusClass}">${isFinal ? 'CONFIRMED' : (step.status.includes('pass') ? 'COMPLIANT' : 'NON-COMPLIANT')}</span>
+            </div>
+        `;
+        decisionTrace.appendChild(row);
     });
 
-    // Populate Content
-    decisionBadge.textContent = result.outcome;
-    timestamp.textContent = new Date().toLocaleString('en-IN');
-
-    // Reset classes
-    resultCard.className = 'result-card card';
-    if (result.outcome === 'Approved') resultCard.classList.add('approved');
-    else if (result.outcome === 'Denied') resultCard.classList.add('denied');
-    else resultCard.classList.add('review');
-
-    decisionTitle.textContent = result.outcome === 'Approved' ? 'Decision: Approved' : (result.outcome === 'Denied' ? 'Decision: Not Eligible' : 'Decision: Under Review');
-
-    // Main Text
-    decisionMainText.textContent = result.explanation;
-
-    // Details
-    appliedRuleText.textContent = result.ruleSummary;
-    keyFactorText.textContent = result.keyFactor;
-    narrativeText.textContent = `Based on the information provided, the system evaluated your application against the standard ${SCENARIOS[scenarioSelect.value].title} criteria. ${result.explanation}`;
+    // Factors
+    if (result.factors && result.factors.length >= 2) {
+        factor1Label.textContent = result.factors[0].label;
+        factor1Value.textContent = result.factors[0].value;
+        factor2Label.textContent = result.factors[1].label;
+        factor2Value.textContent = result.factors[1].value;
+    }
 
     // Legal
-    legalText.textContent = result.legalClause;
-
-    // Resource
-    resourceLabel.textContent = result.resource.label;
-    resourceLink.href = result.resource.url;
+    legalText.textContent = `"${result.legal.text}"`;
+    resourceLink.href = result.legal.link;
 
     // Guidance
-    guidanceText.textContent = result.guidance;
+    guidanceList.innerHTML = '';
+    if (result.outcome === 'APPROVED') {
+        const li = document.createElement('li');
+        li.textContent = "Current record status meets all standing regulatory requirements. No action required.";
+        guidanceList.appendChild(li);
+    }
+    result.counterfactuals.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        guidanceList.appendChild(li);
+    });
 }
