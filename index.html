@@ -4,145 +4,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clear-Cause | Institutional Decision Explainer</title>
+    <title>Clear-Cause | Decision Explanation Audit</title>
     <meta name="description"
-        content="A post-decision explanation layer for institutional decisions, focusing on clarity and transparency.">
+        content="Institutional Decision Explanation System. Audit-grade transparency for administrative determinations.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
     <header class="app-header">
-        <div class="header-content">
-            <div class="logo-container">
-                <div class="logo-icon">
-                    <img src="logo.jpg" alt="Clear-Cause Logo" class="logo-img">
+        <div class="header-inner">
+            <div class="brand">
+                <img src="logo.jpg" alt="Clear-Cause Seal" class="brand-logo">
+                <div class="brand-text">
+                    <h1>Clear-Cause</h1>
+                    <span class="brand-badge">Audit Portal</span>
                 </div>
-                <h1>Clear-Cause</h1>
             </div>
-            <p class="tagline">Transparent Explanations for Institutional Decisions</p>
+            <div class="header-meta">
+                <span class="meta-label">System Status:</span>
+                <span class="meta-value online">Active</span>
+            </div>
         </div>
     </header>
 
-    <main class="main-container">
-        <!-- Input Section -->
-        <section class="input-panel card">
+    <main class="main-layout">
+        <!-- Sidebar / Input Panel -->
+        <aside class="record-panel">
             <div class="panel-header">
-                <h2>Decision Parameters</h2>
-                <p>Select a scenario and input variables to see the decision logic.</p>
+                <h2>Official Record Input</h2>
+                <p>Enter historical data from the applicant's file to retrieve the explanatory statement.</p>
             </div>
 
             <form id="decisionForm">
                 <div class="form-group">
-                    <label for="scenarioSelect">Decision Scenario</label>
+                    <label for="scenarioSelect">Record Category</label>
                     <div class="select-wrapper">
                         <select id="scenarioSelect" name="scenario">
-                            <option value="" disabled selected>Choose a scenario...</option>
-                            <option value="business_grant">Small Business Grant</option>
-                            <option value="housing_loan">First-Time Housing Loan</option>
-                            <option value="student_loan">Student Education Loan</option>
-                            <option value="scholarship">Merit-Based Scholarship</option>
+                            <option value="" disabled selected>Select Record Category...</option>
+                            <option value="business_grant">Small Business Grant (SBG-2025)</option>
+                            <option value="housing_loan">First-Time Homebuyer (FTH-LV)</option>
+                            <option value="student_loan">Education Loan Support (ELS-GX)</option>
+                            <option value="scholarship">Merit-Cum-Means (MCM-SCH)</option>
                         </select>
                     </div>
                 </div>
 
                 <div id="dynamicInputs" class="dynamic-inputs">
-                    <!-- Inputs will be injected here via JS -->
-                    <div class="empty-state-text">Please select a scenario to begin.</div>
+                    <div class="empty-field-state">Select a category to load record fields.</div>
                 </div>
 
-                <button type="submit" id="evaluateBtn" class="primary-btn" disabled>
-                    <span>Evaluate Decision</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
+                <button type="submit" id="evaluateBtn" class="action-btn" disabled>
+                    <span>Retrieve Explanation</span>
                 </button>
             </form>
-        </section>
 
-        <!-- Output Section -->
-        <section class="output-panel">
-            <div id="resultCard" class="result-card card hidden">
-                <div class="card-header">
-                    <span class="badge" id="decisionBadge">Pending</span>
-                    <span class="timestamp" id="timestamp"></span>
-                </div>
-
-                <div class="card-body">
-                    <h3 id="decisionTitle">Decision Summary</h3>
-                    <p class="decision-main-text" id="decisionMainText">
-                        Submit the form to view the explanation.
-                    </p>
-
-                    <div class="explanation-grid">
-                        <div class="info-block">
-                            <h4>Applied Rule</h4>
-                            <p id="appliedRuleText">--</p>
-                        </div>
-                        <div class="info-block">
-                            <h4>Key Factor</h4>
-                            <p id="keyFactorText">--</p>
-                        </div>
-                    </div>
-
-                    <div class="legal-box">
-                        <h4>Relevant Legal Clause</h4>
-                        <blockquote id="legalText">--</blockquote>
-                    </div>
-
-                    <div class="resource-box">
-                        <h4>Official Resources</h4>
-                        <a id="resourceLink" href="#" target="_blank" class="resource-link">
-                            <span id="resourceLabel">--</span>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path
-                                    d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11M15 3H21M21 3V9M21 3L10 14"
-                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg>
-                        </a>
-                    </div>
-
-                    <div class="narrative-box">
-                        <h4>Explanation</h4>
-                        <p id="narrativeText">--</p>
-                    </div>
-
-                    <div class="guidance-box" id="guidanceBox">
-                        <div class="guidance-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path
-                                    d="M13 16H12V12H11M12 8H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg>
-                        </div>
-                        <div class="guidance-content">
-                            <h4>What could change this result?</h4>
-                            <p id="guidanceText">--</p>
-                        </div>
-                    </div>
-                </div>
+            <div class="security-notice">
+                <p><strong>Note:</strong> All inputs are treated as read-only historical records. This system does not
+                    process new applications.</p>
             </div>
+        </aside>
+
+        <!-- Main Content / Output Panel -->
+        <section class="explanation-panel">
 
             <div id="emptyState" class="empty-state">
-                <div class="illustration">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                        <line x1="8" y1="21" x2="16" y2="21"></line>
-                        <line x1="12" y1="17" x2="12" y2="21"></line>
-                    </svg>
+                <div class="state-content">
+                    <h3>Ready to Retrieve</h3>
+                    <p>Select a record category and input stored values to generate a formal decision explanation.</p>
                 </div>
-                <h3>Ready to Analyze</h3>
-                <p>Select a scenario and enter details to generate a clear, human-readable decision explanation.</p>
             </div>
+
+            <div id="resultCard" class="audit-report hidden">
+                <!-- Report Header -->
+                <header class="report-header">
+                    <div class="report-meta">
+                        <div class="meta-item">
+                            <span class="label">Reference ID</span>
+                            <span class="value monospace" id="refId">--</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="label">Retrieval Timestamp</span>
+                            <span class="value" id="timestamp">--</span>
+                        </div>
+                    </div>
+                    <div class="report-status">
+                        <span class="status-label">Determination Status</span>
+                        <span class="status-badge" id="decisionBadge">PENDING</span>
+                    </div>
+                </header>
+
+                <div class="report-body">
+
+                    <!-- Outcome Statement -->
+                    <section class="report-section outcome-section">
+                        <span class="section-label">Final Determination</span>
+                        <h2 id="decisionTitle">--</h2>
+                        <div class="outcome-basis" id="whySummary">
+                            --
+                        </div>
+                    </section>
+
+                    <hr class="divider">
+
+                    <!-- Decision Trace Log -->
+                    <section class="report-section trace-section">
+                        <span class="section-label">Compliance Audit Log</span>
+                        <div id="decisionTrace" class="audit-log">
+                            <!-- Logs injected via JS -->
+                        </div>
+                    </section>
+
+                    <hr class="divider">
+
+                    <!-- Supporting Data Grid -->
+                    <section class="report-section data-section">
+                        <span class="section-label">Statutory Thresholds</span>
+                        <div class="data-grid">
+                            <div class="data-point">
+                                <span class="data-label" id="factor1Label">--</span>
+                                <span class="data-value monospace" id="factor1Value">--</span>
+                            </div>
+                            <div class="data-point">
+                                <span class="data-label" id="factor2Label">--</span>
+                                <span class="data-value monospace" id="factor2Value">--</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Legal & Policy Context -->
+                    <section class="report-section policy-section">
+                        <div class="policy-block">
+                            <div class="policy-header">
+                                <span class="section-label">Applied Legal Provision</span>
+                                <a id="resourceLink" href="#" target="_blank" class="ref-link">Source [↗]</a>
+                            </div>
+                            <p class="policy-text" id="legalText">--</p>
+                            <span class="policy-note">Text summarized for clarity. Refer to official source for full
+                                statute.</span>
+                        </div>
+                    </section>
+
+                    <!-- Conditional Guidance -->
+                    <section class="report-section guidance-section">
+                        <span class="section-label">Conditional Scenarios (Non-Binding)</span>
+                        <div class="guidance-content">
+                            <p class="guidance-intro">Based on current policy structure, the following conditions
+                                typically result in a different determination:</p>
+                            <ul id="guidanceList" class="guidance-list">
+                                <!-- Items via JS -->
+                            </ul>
+                        </div>
+                    </section>
+
+                </div>
+
+                <!-- Footer Disclaimer -->
+                <footer class="report-footer">
+                    <p><strong>OFFICIAL DISCLAIMER:</strong> Clear-Cause provides explanatory summaries based
+                        exclusively on the institutional record inputs provided. It does not constitute a new decision,
+                        override the original authority, or guarantee the outcome of any appeal. This document is for
+                        informational purposes only.</p>
+                </footer>
+            </div>
+
         </section>
     </main>
 
